@@ -8,13 +8,28 @@ directory](https://vite.dev/guide/assets) and can be updated by editing
 
 You can also use the `public` directory to serve a static image for `splashBackgroundImageUrl`.
 
-## Frame Embed
+Manage your Mini App on Farcaster here:
+https://farcaster.xyz/~/developers/mini-apps
 
-Add a the `fc:frame` in `index.html` to make your root app URL sharable in feeds:
+## Live App
+
+```html
+<iframe
+  src="https://inking-farcaster-miniapp.vercel.app/"
+  width="424"
+  height="695"
+  style="border: 1px solid #e5e7eb; border-radius: 12px;"
+  title="Inking Farcaster Mini App"
+></iframe>
+```
+
+## Mini App Embed
+
+Add the `fc:miniapp` tag in `index.html` to make your root app URL sharable in feeds:
 
 ```html
   <head>
     <!--- other tags --->
-    <meta name="fc:frame" content='{"version":"next","imageUrl":"https://placehold.co/900x600.png?text=Frame%20Image","button":{"title":"Open","action":{"type":"launch_frame","name":"App Name","url":"https://app.com"}}}' /> 
+    <meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://inking-farcaster-miniapp.vercel.app/preview.svg","button":{"title":"Open","action":{"type":"launch_frame","name":"Inking","url":"https://inking-farcaster-miniapp.vercel.app/"}}}' />
   </head>
 ```
