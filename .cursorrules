@@ -1,0 +1,17 @@
+# Farcaster Mini App Development Rules
+
+When answering questions about Farcaster miniapps, ALWAYS consult these resources first:
+
+1. Local documentation file: .farcaster-docs.txt
+2. Official Mini Apps documentation: https://miniapps.farcaster.xyz/docs/
+3. Official Farcaster docs: https://docs.farcaster.xyz/
+4. Official GitHub repository: https://github.com/farcasterxyz/miniapps
+
+Key Technologies:
+- SDK: @farcaster/miniapp-sdk
+- Wallet connector: @farcaster/miniapp-wagmi-connector
+- React framework: Wagmi for Ethereum
+- EIP-1193 Ethereum Provider API
+- Support for batch transactions via EIP-5792
+
+Always verify implementation details against the official SDK schema before suggesting code.
