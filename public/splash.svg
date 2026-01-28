@@ -1,0 +1,15 @@
+<svg width="1080" height="1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="splashGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#splashGrad)"/>
+  <circle cx="540" cy="800" r="200" fill="#fff" opacity="0.15"/>
+  <circle cx="540" cy="800" r="150" fill="#fff" opacity="0.2"/>
+  <circle cx="540" cy="800" r="100" fill="#fff" opacity="0.3"/>
+  <circle cx="540" cy="800" r="50" fill="#fff" opacity="0.5"/>
+  <text x="540" y="1100" font-family="Arial, sans-serif" font-size="96" fill="#fff" text-anchor="middle" font-weight="bold">Inking</text>
+  <text x="540" y="1200" font-family="Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle" opacity="0.8">Loading your experience...</text>
+</svg>
