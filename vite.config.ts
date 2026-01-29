@@ -7,4 +7,17 @@ export default defineConfig({
   server: {
     allowedHosts: true,
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      // Suppress noisy warnings from dependencies
+      onLog(level, log, handler) {
+        // Suppress PURE annotation warnings from ox/viem dependencies
+        if (log.message && log.message.includes('PURE')) {
+          return;
+        }
+        handler(level, log);
+      },
+    },
+  },
 });
