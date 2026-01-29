@@ -19,6 +19,7 @@ function ConnectMenu() {
   const { address, status } = useConnection();
   const { mutate: connect } = useConnect();
   const connectors = useConnectors();
+  console.log(address, status);
 
   if (status === "connected") {
     return (

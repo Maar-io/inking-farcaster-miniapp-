@@ -1,13 +1,13 @@
-import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
+// import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
+import { startaleConnector } from "@startale/app-sdk";
 import { http, createConfig } from "wagmi";
-import { base, mainnet } from "wagmi/chains";
+import { soneium } from "wagmi/chains";
 
 export const config = createConfig({
-  chains: [base, mainnet],
-  connectors: [farcasterMiniApp()],
+  chains: [soneium],
+  connectors: [startaleConnector()],
   transports: {
-    [base.id]: http(),
-    [mainnet.id]: http(),
+    [soneium.id]: http()
   },
 });
 
