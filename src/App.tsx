@@ -1,6 +1,7 @@
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useEffect } from "react";
-import { useConnection, useConnect, useConnectors, useSignMessage } from "wagmi";
+import { useConnection, useConnect, useConnectors, useSignMessage, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { soneium } from "wagmi/chains";
 
 function App() {
   useEffect(() => {
@@ -9,7 +10,7 @@ function App() {
 
   return (
     <div style={{ padding: '16px', maxWidth: '100%' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '24px', fontSize: '20px' }}>INKING Mini App</h1>
+      <h1 style={{ textAlign: 'center', marginBottom: '24px', fontSize: '20px' }}>Demo Mini App</h1>
       <ConnectMenu />
     </div>
   );
@@ -32,6 +33,7 @@ function ConnectMenu() {
         <div style={{ marginBottom: '8px', fontWeight: '500' }}>Connected account:</div>
         <div style={{ wordBreak: 'break-all', marginBottom: '12px', fontSize: '11px' }}>{address}</div>
         <div style={{ marginBottom: '12px' }}>Chain: {chain?.name}</div>
+        <MintSection address={address!} />
         <SignButton />
       </div>
     );
@@ -64,6 +66,102 @@ function ConnectMenu() {
       {connectError && (
         <div style={{ color: 'red', marginTop: '10px', fontSize: '12px' }}>
           Error: {connectError.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const NFT_CONTRACT = "0x7a181921b8976cE4a4997B134225d2E74E67797B" as const;
+const NFT_ABI = [
+  {
+    inputs: [{ name: "to", type: "address" }],
+    name: "mint",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "owner", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    name: "tokenURI",
+    outputs: [{ name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+function MintSection({ address }: { address: `0x${string}` }) {
+  const { data: balance } = useReadContract({
+    address: NFT_CONTRACT,
+    abi: NFT_ABI,
+    functionName: "balanceOf",
+    args: [address],
+    chainId: soneium.id,
+  });
+
+  const { data: tokenURI } = useReadContract({
+    address: NFT_CONTRACT,
+    abi: NFT_ABI,
+    functionName: "tokenURI",
+    args: [0n],
+    chainId: soneium.id,
+    query: {
+      enabled: balance !== undefined && balance >= 1n,
+    },
+  });
+
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  const hasMinted = balance !== undefined && balance >= 1n;
+
+  const handleMint = () => {
+    writeContract({
+      address: NFT_CONTRACT,
+      abi: NFT_ABI,
+      functionName: "mint",
+      args: [address],
+      chainId: soneium.id,
+    });
+  };
+
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <button
+        type="button"
+        onClick={handleMint}
+        disabled={isPending || isConfirming || hasMinted}
+        style={{ marginBottom: '8px' }}
+      >
+        {isPending || isConfirming ? "Minting..." : hasMinted ? "Already Minted" : "Mint NFT"}
+      </button>
+
+      {isSuccess && (
+        <div style={{ color: 'white', fontSize: '12px', marginTop: '8px' }}>
+          NFT minted successfully!
+        </div>
+      )}
+      
+      {error && (
+        <div style={{ color: 'red', fontSize: '12px', marginTop: '8px' }}>
+          Error: {error.message}
+        </div>
+      )}
+
+      {hasMinted && tokenURI && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
+          <img 
+            src={tokenURI} 
+            alt="NFT" 
+            style={{ width: '300px', height: '300px', objectFit: 'cover', borderRadius: '8px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)' }}
+          />
         </div>
       )}
     </div>
