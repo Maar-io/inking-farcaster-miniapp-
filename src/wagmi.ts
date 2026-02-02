@@ -5,7 +5,7 @@ import { soneium } from "wagmi/chains";
 
 export const config = createConfig({
   chains: [soneium],
-  // Use Farcaster connector for iframe embedding, and Startale for popup-based auth
+  // Farcaster connector for Mini App authentication
   connectors: [farcasterMiniApp(), startaleConnector()],
   transports: {
     [soneium.id]: http()
