@@ -12,6 +12,8 @@
     "imageUrl": "https://inking-farcaster-miniapp.vercel.app/preview.png",
     "buttonTitle": "Launch Inking",
     "splashImageUrl": "https://inking-farcaster-miniapp.vercel.app/splash.svg",
-    "splashBackgroundColor": "#4f46e5"
+    "splashBackgroundColor": "#4f46e5",
+    "primaryCategory": "entertainment",
+    "tags": ["nft", "wallet", "creativity", "fun", "challenge"]
   }
 }
