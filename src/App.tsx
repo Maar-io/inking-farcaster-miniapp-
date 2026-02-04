@@ -1,6 +1,6 @@
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useEffect } from "react";
-import { useConnection, useConnect, useConnectors, useSignMessage, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useConnection, useConnect, useConnectors, useDisconnect, useSignMessage, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { soneium } from "wagmi/chains";
 
 function App() {
@@ -19,6 +19,7 @@ function App() {
 function ConnectMenu() {
   const { address, status, chain } = useConnection();
   const { mutate: connect, error: connectError } = useConnect();
+  const { disconnect } = useDisconnect();
   const connectors = useConnectors();
   
   useEffect(() => {
@@ -33,6 +34,22 @@ function ConnectMenu() {
         <div style={{ marginBottom: '8px', fontWeight: '500' }}>Connected account:</div>
         <div style={{ wordBreak: 'break-all', marginBottom: '12px', fontSize: '11px' }}>{address}</div>
         <div style={{ marginBottom: '12px' }}>Chain: {chain?.name}</div>
+        <button
+          type="button"
+          onClick={() => disconnect()}
+          style={{
+            marginBottom: '16px',
+            padding: '8px 16px',
+            backgroundColor: '#dc2626',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          Disconnect Wallet
+        </button>
         <MintSection address={address!} />
         <SignButton />
       </div>
