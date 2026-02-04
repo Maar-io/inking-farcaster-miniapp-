@@ -7,6 +7,7 @@
   "miniapp": {
     "version": "1",
     "name": "Inking",
+    "description": "Collect NFT with Inking Demo MiniApp.",
     "iconUrl": "https://inking-farcaster-miniapp.vercel.app/icon.svg",
     "homeUrl": "https://inking-farcaster-miniapp.vercel.app",
     "imageUrl": "https://inking-farcaster-miniapp.vercel.app/preview.png",
