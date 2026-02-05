@@ -8,7 +8,7 @@ A short guide to creating a new Farcaster Mini App and wiring it to use Startale
 
 **You can build the app entirely using Farcaster’s official flow first, then switch the wallet layer to Startale.**
 
-1. Use [Farcaster’s official docs](https://miniapps.farcaster.xyz/docs) to create, build, and sign your Mini App (manifest, embed, SDK, etc.).
+1. Use [Farcaster’s official docs](https://miniapps.farcaster.xyz) to create, build, and sign your Mini App (manifest, embed, SDK, etc.).
 2. After the app runs correctly in a Farcaster client, add a single **wagmi config file** that uses **Startale’s connector** instead of the Farcaster miniapp connector. Your app stays a valid Farcaster Mini App; only the wallet/provider used inside the iframe is Startale.
 
 This guide assumes you already have a Farcaster Mini App (or are about to create one) and want it to use Startale SDK for wallet/auth.
@@ -19,7 +19,7 @@ This guide assumes you already have a Farcaster Mini App (or are about to create
 
 Follow the official Farcaster Mini Apps documentation:
 
-- **Docs:** [miniapps.farcaster.xyz/docs](https://miniapps.farcaster.xyz/docs)
+- **Docs:** [miniapps.farcaster.xyz](https://miniapps.farcaster.xyz/docs)
 - **Getting started:** Use the [Quick Start](https://miniapps.farcaster.xyz/docs/getting-started) (e.g. `pnpm create @farcaster/mini-app`) or manual setup with `@farcaster/miniapp-sdk`.
 - **Manifest:** Create and host `/.well-known/farcaster.json` with the required `miniapp` (or `frame`) object and, when ready, sign it.
 - **Sign the manifest:** Use the [Farcaster manifest tool](https://farcaster.xyz/~/developers/mini-apps/manifest) — enter your **hostname only** (e.g. `my-miniapp.vercel.app`, no `https://` or path). The tool gives you a signed **account association** to put back into your manifest.
@@ -97,7 +97,7 @@ import { config } from "./wagmi";
 
 | Step | Action |
 |------|--------|
-| 1 | Build and sign the Mini App using [Farcaster’s official documentation](https://miniapps.farcaster.xyz/docs). |
+| 1 | Build and sign the Mini App using [Farcaster’s official documentation](https://miniapps.farcaster.xyz). |
 | 2 | After signing, the manifest’s **accountAssociation** proves domain ownership to a Farcaster account; no change needed when adding Startale. |
 | 3 | Add one **wagmi config** that uses **Startale’s connector** (and your chain, e.g. Soneium); wrap the app with `WagmiProvider`; remove the Farcaster miniapp wagmi connector from the config. |
 
