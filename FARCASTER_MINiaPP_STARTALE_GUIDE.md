@@ -93,12 +93,56 @@ import { config } from "./wagmi";
 
 ---
 
+## 4. Use Startale SDK directly
+
+To use Startale SDK for wallet/EVM interactions instead of the default Farcaster wallet:
+
+1. **Install** (if not already present):
+   - **Startale:** `@startale/app-sdk`
+   - `viem` (optional)
+   - Keep `@farcaster/miniapp-sdk` for Farcaster-specific APIs (e.g. `sdk.actions.ready()`, context).
+
+2. **Import dependencies**
+
+```ts
+import { createStartaleAccountSDK } from "@startale/app-sdk";
+import { toHex } from "viem";
+```
+
+3. **Create Startale SDK instance and connect to Startale App**
+
+```ts
+const sdk = createStartaleAccountSDK({
+  appName: "Mini App Demo", // TODO: Replace with your app name
+  appLogoUrl: "https://startale.com/image/symbol.png", // TODO: Replace with your app logo URL
+  appChainIds: [1868], //Soneium chain ID
+});
+
+const provider = sdk.getProvider();
+
+const accounts = await provider.request({ method: "eth_requestAccounts" });
+```
+
+4. **Sign message**
+
+```ts
+const response = await provider.request({
+  method: "personal_sign",
+  params: [toHex("Hello"), accounts[0]],
+});
+```
+
+The similar approach can be used to send a transaction.
+
+---
+
 ## Summary
 
-| Step | Action |
-|------|--------|
-| 1 | Build and sign the Mini App using [Farcaster’s official documentation](https://miniapps.farcaster.xyz). |
-| 2 | After signing, the manifest’s **accountAssociation** proves domain ownership to a Farcaster account; no change needed when adding Startale. |
-| 3 | Add one **wagmi config** that uses **Startale’s connector** (and your chain, e.g. Soneium); wrap the app with `WagmiProvider`; remove the Farcaster miniapp wagmi connector from the config. |
+| Step | Action                                                                                                                                                                                       |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Build and sign the Mini App using [Farcaster’s official documentation](https://miniapps.farcaster.xyz).                                                                                      |
+| 2    | After signing, the manifest’s **accountAssociation** proves domain ownership to a Farcaster account; no change needed when adding Startale.                                                  |
+| 3    | Add one **wagmi config** that uses **Startale’s connector** (and your chain, e.g. Soneium); wrap the app with `WagmiProvider`; remove the Farcaster miniapp wagmi connector from the config. |
+| 4    | Optionally use SDK directly, without `wagmi`                                                                                                                                                 |
 
 Result: a standard Farcaster Mini App that uses Startale SDK for wallet and chain interactions inside the app.
