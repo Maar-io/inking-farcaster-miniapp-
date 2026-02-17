@@ -22,11 +22,14 @@ function ConnectMenu() {
   const { disconnect } = useDisconnect();
   const connectors = useConnectors();
   
+  // Get the Startale connector
+  const startaleConnector = connectors.find(c => c.name.toLowerCase().includes('startale'));
+  
   useEffect(() => {
     console.log('Address:', address, 'Status:', status);
-    console.log('Available connectors:', connectors.map(c => c.name));
+    console.log('Startale connector:', startaleConnector?.name);
     console.log('Chain:', chain?.name);
-  }, [address, status, connectors]);
+  }, [address, status, startaleConnector]);
 
   if (status === "connected") {
     return (
@@ -60,25 +63,35 @@ function ConnectMenu() {
     <div style={{ fontSize: '14px' }}>
       <div style={{ marginBottom: '8px' }}>Status: {status}</div>
       <div style={{ marginBottom: '8px' }}>Chain: {chain?.name}</div>
-      <div style={{ marginBottom: '12px' }}>Connectors: {connectors.length}</div>
       
-      {/* Show all available connectors */}
-      <div>
-        {connectors.map((connector) => (
-          <button 
-            key={connector.uid}
-            type="button" 
-            onClick={() => {
-              console.log('Attempting to connect with:', connector.name);
-              connect({ connector });
-            }}
-            disabled={status === "connecting"}
-            style={{ display: 'block', margin: '5px 0' }}
-          >
-            Connect {connector.name}
-          </button>
-        ))}
-      </div>
+      {/* Use only Startale connector */}
+      {startaleConnector ? (
+        <button 
+          type="button" 
+          onClick={() => {
+            console.log('Connecting with Startale connector');
+            connect({ connector: startaleConnector });
+          }}
+          disabled={status === "connecting"}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            marginBottom: '12px'
+          }}
+        >
+          {status === "connecting" ? "Connecting..." : "Connect with Startale"}
+        </button>
+      ) : (
+        <div style={{ color: 'orange', fontSize: '12px', marginBottom: '12px' }}>
+          Startale connector not found
+        </div>
+      )}
       
       {connectError && (
         <div style={{ color: 'red', marginTop: '10px', fontSize: '12px' }}>
