@@ -23,7 +23,7 @@ function ConnectMenu() {
   const connectors = useConnectors();
   
   // Get the Startale connector
-  const startaleConnector = connectors.find(c => c.name.toLowerCase().includes('startale'));
+  const startaleConnector = connectors.find(c => c.name.toLowerCase() === 'startale');
   
   useEffect(() => {
     console.log('Address:', address, 'Status:', status);
