@@ -247,6 +247,7 @@ function NotifyButton() {
     setError(null);
     try {
       const result = await sdk.actions.addMiniApp();
+
       const details = (result as { notificationDetails?: { url: string; token: string } })?.notificationDetails;
       if (details) {
         notifDetailsRef.current = details;
@@ -258,6 +259,7 @@ function NotifyButton() {
         setStatus('error');
       }
     } catch (e) {
+      console.error('[MINIAPP] Error in handleEnable:', e);
       setError(e instanceof Error ? e.message : 'Failed to enable notifications');
       setStatus('error');
     }
@@ -287,6 +289,14 @@ function NotifyButton() {
       setError(e instanceof Error ? e.message : 'Failed to send notification');
       setStatus('error');
     }
+  }, []);
+
+  const handleDisable = useCallback(() => {
+    // Clear local state
+    notifDetailsRef.current = null;
+    localStorage.removeItem('inking-notification-details');
+    setStatus('idle');
+    setError(null);
   }, []);
 
   return (
@@ -329,6 +339,21 @@ function NotifyButton() {
             }}
           >
             {status === 'sending' ? 'Sending...' : status === 'sent' ? 'Sent!' : 'Send Notification'}
+          </button>
+          <button
+            type="button"
+            onClick={handleDisable}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#dc2626',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            Disable
           </button>
         </div>
       )}
