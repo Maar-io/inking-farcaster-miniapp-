@@ -21,15 +21,30 @@ function ConnectMenu() {
   const { mutate: connect, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
   const connectors = useConnectors();
-  
+  const [starPoints, setStarPoints] = useState<number | null>(null);
+
   // Get the Startale connector
   const startaleConnector = connectors.find(c => c.name.toLowerCase() === 'startale');
-  
+
   useEffect(() => {
     console.log('Address:', address, 'Status:', status);
     console.log('Startale connector:', startaleConnector?.name);
     console.log('Chain:', chain?.name);
   }, [address, status, startaleConnector, chain]);
+
+  // Read starPoints from context (async because of Comlink)
+  useEffect(() => {
+    (async () => {
+      try {
+        const context = await sdk.context as { starPoints?: number };
+        if (context?.starPoints !== undefined) {
+          setStarPoints(context.starPoints);
+        }
+      } catch (e) {
+        console.error('Failed to read context:', e);
+      }
+    })();
+  }, []);
 
   if (status === "connected") {
     return (
@@ -37,6 +52,11 @@ function ConnectMenu() {
         <div style={{ marginBottom: '8px', fontWeight: '500' }}>Connected account:</div>
         <div style={{ wordBreak: 'break-all', marginBottom: '12px', fontSize: '11px' }}>{address}</div>
         <div style={{ marginBottom: '12px' }}>Chain: {chain?.name}</div>
+        {starPoints !== null && (
+          <div style={{ marginBottom: '12px', color: 'white' }}>
+            ⭐ User star points: {starPoints}
+          </div>
+        )}
         <button
           type="button"
           onClick={() => disconnect()}
