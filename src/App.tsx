@@ -29,7 +29,7 @@ function ConnectMenu() {
     console.log('Address:', address, 'Status:', status);
     console.log('Startale connector:', startaleConnector?.name);
     console.log('Chain:', chain?.name);
-  }, [address, status, startaleConnector]);
+  }, [address, status, startaleConnector, chain]);
 
   if (status === "connected") {
     return (
@@ -53,7 +53,7 @@ function ConnectMenu() {
         >
           Disconnect Wallet
         </button>
-        <MintSection address={address!} />
+        {address && <MintSection address={address} />}
         <SignButton />
         <NotifyButton />
       </div>
@@ -228,6 +228,20 @@ function NotifyButton() {
   const [error, setError] = useState<string | null>(null);
   const notifDetailsRef = useRef<{ url: string; token: string } | null>(null);
 
+  // Load saved notification details from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('inking-notification-details');
+      if (saved) {
+        const details = JSON.parse(saved) as { url: string; token: string };
+        notifDetailsRef.current = details;
+        setStatus('enabled');
+      }
+    } catch (e) {
+      console.error('Failed to load notification details:', e);
+    }
+  }, []);
+
   const handleEnable = useCallback(async () => {
     setStatus('enabling');
     setError(null);
@@ -236,6 +250,8 @@ function NotifyButton() {
       const details = (result as { notificationDetails?: { url: string; token: string } })?.notificationDetails;
       if (details) {
         notifDetailsRef.current = details;
+        // Persist to localStorage
+        localStorage.setItem('inking-notification-details', JSON.stringify(details));
         setStatus('enabled');
       } else {
         setError('No notification details returned');
@@ -297,22 +313,24 @@ function NotifyButton() {
           Enabling...
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={status === 'sending'}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: status === 'sent' ? '#16a34a' : '#7c3aed',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '14px',
-          }}
-        >
-          {status === 'sending' ? 'Sending...' : status === 'sent' ? 'Sent!' : 'Send Notification'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={status === 'sending'}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: status === 'sent' ? '#16a34a' : '#7c3aed',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+            }}
+          >
+            {status === 'sending' ? 'Sending...' : status === 'sent' ? 'Sent!' : 'Send Notification'}
+          </button>
+        </div>
       )}
       {error && (
         <div style={{ color: 'red', fontSize: '12px', marginTop: '8px' }}>
