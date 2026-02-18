@@ -1,5 +1,5 @@
 import { sdk } from "@farcaster/miniapp-sdk";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useConnection, useConnect, useConnectors, useDisconnect, useSignMessage, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { soneium } from "wagmi/chains";
 
@@ -55,6 +55,7 @@ function ConnectMenu() {
         </button>
         <MintSection address={address!} />
         <SignButton />
+        <NotifyButton />
       </div>
     );
   }
@@ -216,6 +217,106 @@ function SignButton() {
         <div style={{ marginTop: '12px' }}>
           <div style={{ marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>Error</div>
           <div style={{ color: 'red', fontSize: '12px' }}>{error.message}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NotifyButton() {
+  const [status, setStatus] = useState<'idle' | 'enabling' | 'enabled' | 'sending' | 'sent' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const notifDetailsRef = useRef<{ url: string; token: string } | null>(null);
+
+  const handleEnable = useCallback(async () => {
+    setStatus('enabling');
+    setError(null);
+    try {
+      const result = await sdk.actions.addMiniApp();
+      const details = (result as { notificationDetails?: { url: string; token: string } })?.notificationDetails;
+      if (details) {
+        notifDetailsRef.current = details;
+        setStatus('enabled');
+      } else {
+        setError('No notification details returned');
+        setStatus('error');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to enable notifications');
+      setStatus('error');
+    }
+  }, []);
+
+  const handleSend = useCallback(async () => {
+    const details = notifDetailsRef.current;
+    if (!details) return;
+    setStatus('sending');
+    setError(null);
+    try {
+      const res = await fetch(details.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notificationId: `inking-${Date.now()}`,
+          title: 'Inking',
+          body: 'Your NFT is ready to collect!',
+          targetUrl: window.location.href,
+          tokens: [details.token],
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setStatus('sent');
+      setTimeout(() => setStatus('enabled'), 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to send notification');
+      setStatus('error');
+    }
+  }, []);
+
+  return (
+    <div style={{ marginTop: '16px' }}>
+      <div style={{ marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>Notifications</div>
+      {status === 'idle' || status === 'error' ? (
+        <button
+          type="button"
+          onClick={handleEnable}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#7c3aed',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px',
+          }}
+        >
+          Enable Notifications
+        </button>
+      ) : status === 'enabling' ? (
+        <button type="button" disabled style={{ padding: '8px 16px', fontSize: '14px' }}>
+          Enabling...
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={status === 'sending'}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: status === 'sent' ? '#16a34a' : '#7c3aed',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px',
+          }}
+        >
+          {status === 'sending' ? 'Sending...' : status === 'sent' ? 'Sent!' : 'Send Notification'}
+        </button>
+      )}
+      {error && (
+        <div style={{ color: 'red', fontSize: '12px', marginTop: '8px' }}>
+          {error}
         </div>
       )}
     </div>

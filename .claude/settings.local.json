@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:miniapps.farcaster.xyz)",
+      "WebFetch(domain:hackmd.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.farcaster.xyz)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:docs.base.org)"
+    ]
+  }
+}
