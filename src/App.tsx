@@ -216,7 +216,14 @@ function MintSection({ address }: { address: `0x${string}` }) {
             targetUrl: window.location.href,
             tokens: [details.token],
           }),
-        }).catch((e) => console.error('Failed to send notification:', e));
+        }).catch((e) => {
+          console.error('[INKING] Failed to send cooldown notification:', {
+            url: details.url,
+            token: details.token,
+            error: e instanceof Error ? e.message : String(e),
+            currentOrigin: window.location.origin,
+          });
+        });
         setNotificationSent(true);
       }
     }, 100);
@@ -386,6 +393,11 @@ function NotifyButton() {
     setStatus('sending');
     setError(null);
     try {
+      console.log('[INKING] Sending notification:', {
+        url: details.url,
+        token: details.token,
+        currentOrigin: window.location.origin,
+      });
       const res = await fetch(details.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -397,11 +409,21 @@ function NotifyButton() {
           tokens: [details.token],
         }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unable to read response');
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
       setStatus('sent');
       setTimeout(() => setStatus('enabled'), 2000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to send notification');
+      const errorMessage = e instanceof Error ? e.message : 'Failed to send notification';
+      console.error('[INKING] Failed to send test notification:', {
+        error: errorMessage,
+        url: details.url,
+        token: details.token,
+        currentOrigin: window.location.origin,
+      });
+      setError(`${errorMessage}. Check console for details.`);
       setStatus('error');
     }
   }, []);
