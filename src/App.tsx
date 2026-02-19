@@ -171,7 +171,67 @@ function MintSection({ address }: { address: `0x${string}` }) {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  const hasMinted = balance !== undefined && balance >= 1n;
+  const [lastMintTime, setLastMintTime] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [notificationSent, setNotificationSent] = useState(false);
+  const notifDetailsRef = useRef<{ url: string; token: string } | null>(null);
+
+  // Load notification details and last mint time
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('inking-notification-details');
+      if (saved) {
+        notifDetailsRef.current = JSON.parse(saved) as { url: string; token: string };
+      }
+      const lastMint = localStorage.getItem('inking-last-mint-time');
+      if (lastMint) {
+        setLastMintTime(Number.parseInt(lastMint, 10));
+      }
+    } catch (e) {
+      console.error('Failed to load data:', e);
+    }
+  }, []);
+
+  // Timer for cooldown
+  useEffect(() => {
+    if (!lastMintTime) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - lastMintTime;
+      const remaining = Math.max(0, 60000 - elapsed); // 1 minute = 60000ms
+
+      setTimeRemaining(remaining);
+
+      // Send notification when mint becomes available
+      if (remaining === 0 && !notificationSent && notifDetailsRef.current) {
+        const details = notifDetailsRef.current;
+        fetch(details.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            notificationId: `inking-ready-${Date.now()}`,
+            title: 'Inking',
+            body: 'You can mint NFT again!',
+            targetUrl: window.location.href,
+            tokens: [details.token],
+          }),
+        }).catch((e) => console.error('Failed to send notification:', e));
+        setNotificationSent(true);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [lastMintTime, notificationSent]);
+
+  // Reset notification sent flag when new mint is allowed
+  useEffect(() => {
+    if (timeRemaining === 0 && notificationSent) {
+      // Reset flag when user mints again
+    }
+  }, [timeRemaining, notificationSent]);
+
+  const canMint = timeRemaining === 0;
 
   const handleMint = () => {
     writeContract({
@@ -183,15 +243,31 @@ function MintSection({ address }: { address: `0x${string}` }) {
     });
   };
 
+  // Update last mint time on successful mint
+  useEffect(() => {
+    if (isSuccess) {
+      const now = Date.now();
+      setLastMintTime(now);
+      localStorage.setItem('inking-last-mint-time', now.toString());
+      setNotificationSent(false); // Reset for next cooldown
+    }
+  }, [isSuccess]);
+
+  const nftCount = balance !== undefined ? Number(balance) : 0;
+  const formatTime = (ms: number) => {
+    const seconds = Math.ceil(ms / 1000);
+    return `${seconds}s`;
+  };
+
   return (
     <div style={{ marginBottom: '16px' }}>
       <button
         type="button"
         onClick={handleMint}
-        disabled={isPending || isConfirming || hasMinted}
+        disabled={isPending || isConfirming || !canMint}
         style={{ marginBottom: '8px' }}
       >
-        {isPending || isConfirming ? "Minting..." : hasMinted ? "Already Minted" : "Mint NFT"}
+        {isPending || isConfirming ? "Minting..." : !canMint ? `Wait ${formatTime(timeRemaining)}` : "Mint NFT"}
       </button>
 
       {isSuccess && (
@@ -199,22 +275,41 @@ function MintSection({ address }: { address: `0x${string}` }) {
           NFT minted successfully!
         </div>
       )}
-      
+
       {error && (
         <div style={{ color: 'red', fontSize: '12px', marginTop: '8px' }}>
           Error: {error.message}
         </div>
       )}
 
-      {hasMinted && tokenURI && (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
-          <img 
-            src={tokenURI} 
-            alt="NFT" 
-            style={{ width: '300px', height: '300px', objectFit: 'cover', borderRadius: '8px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)' }}
-          />
-        </div>
-      )}
+      {/* NFT Grid - 10 placeholders, 5 per row */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: '8px',
+        marginTop: '16px'
+      }}>
+        {Array.from({ length: 10 }, (_, i) => `nft-${i}`).map((nftKey, index) => (
+          <div
+            key={nftKey}
+            style={{
+              aspectRatio: '1',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              backgroundColor: index < nftCount ? 'transparent' : '#333',
+              border: '2px solid #555',
+            }}
+          >
+            {index < nftCount && tokenURI && (
+              <img
+                src={tokenURI}
+                alt={`NFT ${index + 1}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -297,7 +392,7 @@ function NotifyButton() {
         body: JSON.stringify({
           notificationId: `inking-${Date.now()}`,
           title: 'Inking',
-          body: 'Your NFT is ready to collect!',
+          body: 'This is a test notification',
           targetUrl: window.location.href,
           tokens: [details.token],
         }),
@@ -358,7 +453,7 @@ function NotifyButton() {
               fontSize: '14px',
             }}
           >
-            {status === 'sending' ? 'Sending...' : status === 'sent' ? 'Sent!' : 'Send Notification'}
+            {status === 'sending' ? 'Sending...' : status === 'sent' ? 'Sent!' : 'Test Notification'}
           </button>
           <button
             type="button"
