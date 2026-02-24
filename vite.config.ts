@@ -4,13 +4,21 @@ import { defineConfig } from "vite";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      buffer: "buffer/",
+    },
+  },
+  define: {
+    "globalThis.Buffer": "globalThis.Buffer",
+  },
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       // Suppress noisy warnings from dependencies
       onLog(level, log, handler) {
         // Suppress PURE annotation warnings from ox/viem dependencies
-        if (log.message && log.message.includes('PURE')) {
+        if (log.message?.includes('PURE')) {
           return;
         }
         handler(level, log);

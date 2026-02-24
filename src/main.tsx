@@ -1,3 +1,6 @@
+import { Buffer } from "buffer/";
+(globalThis as Record<string, unknown>).Buffer = Buffer;
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";
