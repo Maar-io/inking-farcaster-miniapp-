@@ -8,8 +8,6 @@
   <rect width="900" height="600" fill="url(#grad)"/>
   <circle cx="225" cy="300" r="100" fill="#fff" opacity="0.15"/>
   <circle cx="675" cy="300" r="120" fill="#fff" opacity="0.1"/>
-  <text x="450" y="260" font-family="Arial, sans-serif" font-size="72" fill="#fff" text-anchor="middle" font-weight="bold">Inking</text>
-  <text x="450" y="340" font-family="Arial, sans-serif" font-size="32" fill="#fff" text-anchor="middle" opacity="0.9">Farcaster Mini App</text>
-  <rect x="325" y="410" width="250" height="70" rx="35" fill="#fff" opacity="0.2"/>
-  <text x="450" y="458" font-family="Arial, sans-serif" font-size="26" fill="#fff" text-anchor="middle" font-weight="600">Launch App</text>
+  <text x="450" y="280" font-family="Arial, sans-serif" font-size="72" fill="#fff" text-anchor="middle" font-weight="bold">Inking</text>
+  <text x="450" y="350" font-family="Arial, sans-serif" font-size="32" fill="#fff" text-anchor="middle" opacity="0.9">Client-Side Minting &amp; Notifications</text>
 </svg>
