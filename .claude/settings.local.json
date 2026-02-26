@@ -6,7 +6,14 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.farcaster.xyz)",
       "WebFetch(domain:www.npmjs.com)",
-      "WebFetch(domain:docs.base.org)"
+      "WebFetch(domain:docs.base.org)",
+      "Bash(grep:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite build:*)"
     ]
   }
 }
