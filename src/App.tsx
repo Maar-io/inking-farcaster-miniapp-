@@ -48,14 +48,20 @@ function ConnectMenu() {
     console.log('Chain:', chain?.name);
   }, [address, status, startaleConnector, chain]);
 
-  // Read context from sdk (async because of Comlink)
+  // Read context from sdk (async because of Comlink).
+  // Wait for startaleConnector to be defined — it becomes available only after
+  // the sandbox calls expose(), so using it as a dep avoids the race condition
+  // where sdk.context GET messages are sent before the host is listening.
   useEffect(() => {
+    if (!startaleConnector) return;
     (async () => {
       try {
+        console.log('[inking] calling await sdk.context...');
         const context = await sdk.context as {
           startale?: { starPoints?: number };
           user?: { username?: string; pfpUrl?: string };
         };
+        console.log('[inking] sdk.context resolved:', JSON.stringify(context));
         if (context?.startale?.starPoints !== undefined) {
           setStarPoints(context.startale.starPoints);
         }
@@ -66,10 +72,10 @@ function ConnectMenu() {
           setPfpUrl(context.user.pfpUrl);
         }
       } catch (e) {
-        console.error('Failed to read context:', e);
+        console.error('[inking] Failed to read context:', e);
       }
     })();
-  }, []);
+  }, [startaleConnector]);
 
   if (status === "connected") {
     return (
