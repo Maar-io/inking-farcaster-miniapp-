@@ -6,7 +6,10 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.farcaster.xyz)",
       "WebFetch(domain:www.npmjs.com)",
-      "WebFetch(domain:docs.base.org)"
+      "WebFetch(domain:docs.base.org)",
+      "Bash(sqlite3:*)",
+      "WebFetch(domain:rainbowkit.com)",
+      "WebFetch(domain:docs.openclaw.ai)"
     ]
   }
 }
