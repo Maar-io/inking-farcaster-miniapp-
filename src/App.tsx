@@ -36,28 +36,29 @@ function ConnectMenu() {
   const { disconnect } = useDisconnect();
   const connectors = useConnectors();
   const [starPoints, setStarPoints] = useState<number | null>(null);
+  const [eoaWallets, setEoaWallets] = useState<string[]>([]);
   const [username, setUsername] = useState<string>('');
   const [pfpUrl, setPfpUrl] = useState<string>('');
 
-  // Get the Startale connector
-  const startaleConnector = connectors.find(c => c.name.toLowerCase() === 'startale');
-
   useEffect(() => {
     console.log('Address:', address, 'Status:', status);
-    console.log('Startale connector:', startaleConnector?.name);
+    console.log('Connectors:', connectors.map(c => c.name).join(', '));
     console.log('Chain:', chain?.name);
-  }, [address, status, startaleConnector, chain]);
+  }, [address, status, connectors, chain]);
 
   // Read context from sdk (async because of Comlink)
   useEffect(() => {
     (async () => {
       try {
         const context = await sdk.context as {
-          startale?: { starPoints?: number };
+          startale?: { starPoints?: number; eoaWallets?: string[] };
           user?: { username?: string; pfpUrl?: string };
         };
         if (context?.startale?.starPoints !== undefined) {
           setStarPoints(context.startale.starPoints);
+        }
+        if (context?.startale?.eoaWallets) {
+          setEoaWallets(context.startale.eoaWallets);
         }
         if (context?.user?.username) {
           setUsername(context.user.username);
@@ -97,7 +98,7 @@ function ConnectMenu() {
         <div style={{ marginBottom: '4px' }}>Chain: {chain?.name}</div>
 
         <SectionDivider title="Context" />
-        <ContextSection starPoints={starPoints} username={username} pfpUrl={pfpUrl} />
+        <ContextSection starPoints={starPoints} eoaWallets={eoaWallets} username={username} pfpUrl={pfpUrl} />
 
         <SectionDivider title="Minting" />
         {address && <MintGalleryWithNotifications address={address} />}
@@ -120,13 +121,13 @@ function ConnectMenu() {
       <div style={{ marginBottom: '8px' }}>Status: {status}</div>
       <div style={{ marginBottom: '8px' }}>Chain: {chain?.name}</div>
 
-      {/* Use only Startale connector */}
-      {startaleConnector ? (
+      {connectors.map((connector) => (
         <button
+          key={connector.uid}
           type="button"
           onClick={() => {
-            console.log('Connecting with Startale connector');
-            connect({ connector: startaleConnector });
+            console.log('Connecting with', connector.name);
+            connect({ connector });
           }}
           disabled={status === "connecting"}
           style={{
@@ -138,16 +139,14 @@ function ConnectMenu() {
             cursor: 'pointer',
             fontSize: '14px',
             fontWeight: '500',
-            marginBottom: '12px'
+            marginBottom: '8px',
+            display: 'block',
+            width: '100%',
           }}
         >
-          {status === "connecting" ? "Connecting..." : "Connect with Startale"}
+          {status === "connecting" ? "Connecting..." : `Connect with ${connector.name}`}
         </button>
-      ) : (
-        <div style={{ color: 'orange', fontSize: '12px', marginBottom: '12px' }}>
-          Startale connector not found
-        </div>
-      )}
+      ))}
 
       {connectError && (
         <div style={{ color: 'red', marginTop: '10px', fontSize: '12px' }}>

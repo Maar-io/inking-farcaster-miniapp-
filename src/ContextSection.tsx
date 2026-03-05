@@ -1,10 +1,11 @@
 interface ContextSectionProps {
   starPoints: number | null;
+  eoaWallets: string[];
   username?: string;
   pfpUrl?: string;
 }
 
-export function ContextSection({ starPoints, username, pfpUrl }: ContextSectionProps) {
+export function ContextSection({ starPoints, eoaWallets, username, pfpUrl }: ContextSectionProps) {
   return (
     <div style={{ fontSize: '14px' }}>
       {/* User info with pfp */}
@@ -38,6 +39,18 @@ export function ContextSection({ starPoints, username, pfpUrl }: ContextSectionP
       {starPoints === null && (
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>
           No star data available
+        </div>
+      )}
+
+      {/* EOA Wallets */}
+      {eoaWallets.length > 0 && (
+        <div style={{ marginTop: '12px' }}>
+          <div style={{ marginBottom: '4px', fontWeight: '500' }}>EOA Wallets ({eoaWallets.length})</div>
+          {eoaWallets.map((wallet) => (
+            <div key={wallet} style={{ wordBreak: 'break-all', fontSize: '11px', fontFamily: 'monospace', lineHeight: '1.4', marginBottom: '2px' }}>
+              {wallet}
+            </div>
+          ))}
         </div>
       )}
     </div>

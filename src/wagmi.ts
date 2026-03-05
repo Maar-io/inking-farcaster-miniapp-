@@ -7,6 +7,7 @@ export const config = createConfig({
   chains: [soneium],
   // startaleApp connector for Mini App authentication
   connectors: [startaleConnector()],
+  // connectors: [startaleConnector({preference: {walletUrl:"http://localhost:3000"}})],
   transports: {
     [soneium.id]: http()
   },

@@ -12,7 +12,7 @@
   "dependencies": {
     "@farcaster/miniapp-sdk": "latest",
     "@farcaster/miniapp-wagmi-connector": "latest",
-    "@startale/app-sdk": "^1.1.0",
+    "@startale/app-sdk": "file:/Users/mario/op/app-sdk/packages/app-sdk",
     "@tanstack/react-query": "5.45.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
