@@ -1,6 +1,7 @@
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useConnection, useConnect, useConnectors, useDisconnect, useSignMessage } from "wagmi";
+import { useConnection, useConnect, useConnectors, useDisconnect, useSignMessage, useBalance } from "wagmi";
+import { useUsdcBalance } from "./useTokenBalance";
 import { MintGallery } from "./MintGallery";
 import { NotificationSection } from "./NotificationSection";
 import { ContextSection } from "./ContextSection";
@@ -57,6 +58,8 @@ function ConnectMenu() {
   const { mutate: connect, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
   const connectors = useConnectors();
+  const { data: balance } = useBalance({ address });
+  const { formatted: usdcFormatted } = useUsdcBalance(address);
   const [starPoints, setStarPoints] = useState<number | null>(null);
   const [eoaWallets, setEoaWallets] = useState<string[]>([]);
   const [username, setUsername] = useState<string>('');
@@ -152,6 +155,8 @@ function ConnectMenu() {
         <div style={{ marginBottom: '8px', fontWeight: '500' }}>Connected smart account:</div>
         <div style={{ wordBreak: 'break-all', marginBottom: '12px', fontSize: '11px' }}>{address}</div>
         <div style={{ marginBottom: '4px' }}>Chain: {chain?.name}</div>
+        <div style={{ marginBottom: '4px' }}>Balance: {balance ? `${(Number(balance.value) / 10 ** balance.decimals).toFixed(4)} ${balance.symbol}` : 'Loading...'}</div>
+        <div style={{ marginBottom: '4px' }}>USDC: {usdcFormatted !== undefined ? `${usdcFormatted} USDC` : 'Loading...'}</div>
 
         <SectionDivider title="Context" />
         <ContextSection starPoints={starPoints} eoaWallets={eoaWallets} username={username} pfpUrl={pfpUrl} />
