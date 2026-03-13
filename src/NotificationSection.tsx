@@ -8,7 +8,7 @@ interface NotificationSectionProps {
 }
 
 export function NotificationSection({ appName, storageKey, accentColor }: NotificationSectionProps) {
-  const [status, setStatus] = useState<'idle' | 'enabling' | 'enabled' | 'sending' | 'sent' | 'error'>('idle');
+  const [status, setStatus] = useState<"idle" | "enabling" | "enabled" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const notifDetailsRef = useRef<{ url: string; token: string } | null>(null);
   const prefix = appName.toLowerCase();
@@ -19,10 +19,10 @@ export function NotificationSection({ appName, storageKey, accentColor }: Notifi
       if (saved) {
         const details = JSON.parse(saved) as { url: string; token: string };
         notifDetailsRef.current = details;
-        setStatus('enabled');
+        setStatus("enabled");
       }
     } catch (e) {
-      console.error('[Inking] Failed to load notification details:', e);
+      console.error("[Inking] Failed to load notification details:", e);
     }
   }, [storageKey]);
 
@@ -32,44 +32,44 @@ export function NotificationSection({ appName, storageKey, accentColor }: Notifi
       if (notificationDetails) {
         notifDetailsRef.current = notificationDetails;
         localStorage.setItem(storageKey, JSON.stringify(notificationDetails));
-        setStatus('enabled');
+        setStatus("enabled");
       }
     };
     const handleEnabled = ({ notificationDetails }: { notificationDetails: { url: string; token: string } }) => {
       notifDetailsRef.current = notificationDetails;
       localStorage.setItem(storageKey, JSON.stringify(notificationDetails));
-      setStatus('enabled');
+      setStatus("enabled");
     };
 
-    sdk.on('miniAppAdded', handleAdded);
-    sdk.on('notificationsEnabled', handleEnabled);
+    sdk.on("miniAppAdded", handleAdded);
+    sdk.on("notificationsEnabled", handleEnabled);
     return () => {
-      sdk.off('miniAppAdded', handleAdded);
-      sdk.off('notificationsEnabled', handleEnabled);
+      sdk.off("miniAppAdded", handleAdded);
+      sdk.off("notificationsEnabled", handleEnabled);
     };
   }, [storageKey]);
 
   const handleEnable = useCallback(async () => {
-    setStatus('enabling');
+    setStatus("enabling");
     setError(null);
     try {
       await sdk.actions.addMiniApp();
       // notificationDetails will arrive via the miniAppAdded event listener above.
       // If the event doesn't arrive within 5s (e.g. user dismissed prompt), reset state.
       setTimeout(() => {
-        setStatus((current) => current === 'enabling' ? 'idle' : current);
+        setStatus((current) => (current === "enabling" ? "idle" : current));
       }, 5000);
     } catch (e) {
       console.error(`[${prefix}] Error in handleEnable:`, e);
-      setError(e instanceof Error ? e.message : 'Failed to enable notifications');
-      setStatus('error');
+      setError(e instanceof Error ? e.message : "Failed to enable notifications");
+      setStatus("error");
     }
   }, [prefix]);
 
   const handleSend = useCallback(async () => {
     const details = notifDetailsRef.current;
     if (!details) return;
-    setStatus('sending');
+    setStatus("sending");
     setError(null);
     try {
       console.log(`[${prefix}] Sending notification:`, {
@@ -78,24 +78,24 @@ export function NotificationSection({ appName, storageKey, accentColor }: Notifi
         currentOrigin: window.location.origin,
       });
       const res = await fetch(details.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           notificationId: `${prefix}-${Date.now()}`,
           title: appName,
-          body: 'This is a test notification',
+          body: "This is a test notification",
           targetUrl: window.location.href,
           tokens: [details.token],
         }),
       });
       if (!res.ok) {
-        const errorText = await res.text().catch(() => 'Unable to read response');
+        const errorText = await res.text().catch(() => "Unable to read response");
         throw new Error(`HTTP ${res.status}: ${errorText}`);
       }
-      setStatus('sent');
-      setTimeout(() => setStatus('enabled'), 2000);
+      setStatus("sent");
+      setTimeout(() => setStatus("enabled"), 2000);
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'Failed to send notification';
+      const errorMessage = e instanceof Error ? e.message : "Failed to send notification";
       console.error(`[${prefix}] Failed to send test notification:`, {
         error: errorMessage,
         url: details.url,
@@ -103,79 +103,75 @@ export function NotificationSection({ appName, storageKey, accentColor }: Notifi
         currentOrigin: window.location.origin,
       });
       setError(`${errorMessage}. Check console for details.`);
-      setStatus('error');
+      setStatus("error");
     }
   }, [appName, prefix]);
 
   const handleDisable = useCallback(() => {
     notifDetailsRef.current = null;
     localStorage.removeItem(storageKey);
-    setStatus('idle');
+    setStatus("idle");
     setError(null);
   }, [storageKey]);
 
   return (
     <div>
-      {status === 'idle' || status === 'error' ? (
+      {status === "idle" || status === "error" ? (
         <button
           type="button"
           onClick={handleEnable}
           style={{
-            padding: '8px 16px',
+            padding: "8px 16px",
             backgroundColor: accentColor,
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '14px',
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontSize: "14px",
           }}
         >
           Enable Notifications
         </button>
-      ) : status === 'enabling' ? (
-        <button type="button" disabled style={{ padding: '8px 16px', fontSize: '14px' }}>
+      ) : status === "enabling" ? (
+        <button type="button" disabled style={{ padding: "8px 16px", fontSize: "14px" }}>
           Enabling...
         </button>
       ) : (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <button
             type="button"
             onClick={handleSend}
-            disabled={status === 'sending'}
+            disabled={status === "sending"}
             style={{
-              padding: '8px 16px',
-              backgroundColor: status === 'sent' ? '#16a34a' : accentColor,
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
+              padding: "8px 16px",
+              backgroundColor: status === "sent" ? "#16a34a" : accentColor,
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "14px",
             }}
           >
-            {status === 'sending' ? 'Sending...' : status === 'sent' ? 'Sent!' : 'Test Notification'}
+            {status === "sending" ? "Sending..." : status === "sent" ? "Sent!" : "Test Notification"}
           </button>
           <button
             type="button"
             onClick={handleDisable}
             style={{
-              padding: '8px 16px',
-              backgroundColor: '#dc2626',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '12px',
+              padding: "8px 16px",
+              backgroundColor: "#dc2626",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
             }}
           >
             Disable
           </button>
         </div>
       )}
-      {error && (
-        <div style={{ color: 'red', fontSize: '12px', marginTop: '8px' }}>
-          {error}
-        </div>
-      )}
+      {error && <div style={{ color: "red", fontSize: "12px", marginTop: "8px" }}>{error}</div>}
     </div>
   );
 }

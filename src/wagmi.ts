@@ -10,7 +10,7 @@ export const config = createConfig({
   // connectors: [startaleConnector({preference: {walletUrl:"http://localhost:3000"}})],
   multiInjectedProviderDiscovery: false,
   transports: {
-    [soneium.id]: http()
+    [soneium.id]: http(),
   },
 });
 
