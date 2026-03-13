@@ -8,6 +8,7 @@ export const config = createConfig({
   // startaleApp connector for Mini App authentication
   connectors: [startaleConnector()],
   // connectors: [startaleConnector({preference: {walletUrl:"http://localhost:3000"}})],
+  multiInjectedProviderDiscovery: false,
   transports: {
     [soneium.id]: http()
   },
