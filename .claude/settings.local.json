@@ -9,7 +9,8 @@
       "WebFetch(domain:docs.base.org)",
       "Bash(sqlite3:*)",
       "WebFetch(domain:rainbowkit.com)",
-      "WebFetch(domain:docs.openclaw.ai)"
+      "WebFetch(domain:docs.openclaw.ai)",
+      "WebSearch"
     ]
   }
 }

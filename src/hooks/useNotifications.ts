@@ -1,0 +1,114 @@
+import { sdk } from "@farcaster/miniapp-sdk";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type NotificationStatus = "idle" | "enabling" | "enabled" | "sending" | "sent" | "error";
+
+export function useNotifications({ appName, storageKey }: { appName: string; storageKey: string }) {
+  const [status, setStatus] = useState<NotificationStatus>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const notifDetailsRef = useRef<{ url: string; token: string } | null>(null);
+  const prefix = appName.toLowerCase();
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const details = JSON.parse(saved) as { url: string; token: string };
+        notifDetailsRef.current = details;
+        setStatus("enabled");
+      }
+    } catch (e) {
+      console.error("[Inking] Failed to load notification details:", e);
+    }
+  }, [storageKey]);
+
+  // Listen for notification details arriving via miniAppAdded/notificationsEnabled events
+  useEffect(() => {
+    const handleAdded = ({ notificationDetails }: { notificationDetails?: { url: string; token: string } }) => {
+      if (notificationDetails) {
+        notifDetailsRef.current = notificationDetails;
+        localStorage.setItem(storageKey, JSON.stringify(notificationDetails));
+        setStatus("enabled");
+      }
+    };
+    const handleEnabled = ({ notificationDetails }: { notificationDetails: { url: string; token: string } }) => {
+      notifDetailsRef.current = notificationDetails;
+      localStorage.setItem(storageKey, JSON.stringify(notificationDetails));
+      setStatus("enabled");
+    };
+
+    sdk.on("miniAppAdded", handleAdded);
+    sdk.on("notificationsEnabled", handleEnabled);
+    return () => {
+      sdk.off("miniAppAdded", handleAdded);
+      sdk.off("notificationsEnabled", handleEnabled);
+    };
+  }, [storageKey]);
+
+  const handleEnable = useCallback(async () => {
+    setStatus("enabling");
+    setError(null);
+    try {
+      await sdk.actions.addMiniApp();
+      // notificationDetails will arrive via the miniAppAdded event listener above.
+      // If the event doesn't arrive within 5s (e.g. user dismissed prompt), reset state.
+      setTimeout(() => {
+        setStatus((current) => (current === "enabling" ? "idle" : current));
+      }, 5000);
+    } catch (e) {
+      console.error(`[${prefix}] Error in handleEnable:`, e);
+      setError(e instanceof Error ? e.message : "Failed to enable notifications");
+      setStatus("error");
+    }
+  }, [prefix]);
+
+  const handleSend = useCallback(async () => {
+    const details = notifDetailsRef.current;
+    if (!details) return;
+    setStatus("sending");
+    setError(null);
+    try {
+      console.log(`[${prefix}] Sending notification:`, {
+        url: details.url,
+        token: details.token,
+        currentOrigin: window.location.origin,
+      });
+      const res = await fetch(details.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notificationId: `${prefix}-${Date.now()}`,
+          title: appName,
+          body: "This is a test notification",
+          targetUrl: window.location.href,
+          tokens: [details.token],
+        }),
+      });
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "Unable to read response");
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+      setStatus("sent");
+      setTimeout(() => setStatus("enabled"), 2000);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Failed to send notification";
+      console.error(`[${prefix}] Failed to send test notification:`, {
+        error: errorMessage,
+        url: details.url,
+        token: details.token,
+        currentOrigin: window.location.origin,
+      });
+      setError(`${errorMessage}. Check console for details.`);
+      setStatus("error");
+    }
+  }, [appName, prefix]);
+
+  const handleDisable = useCallback(() => {
+    notifDetailsRef.current = null;
+    localStorage.removeItem(storageKey);
+    setStatus("idle");
+    setError(null);
+  }, [storageKey]);
+
+  return { status, error, handleEnable, handleSend, handleDisable };
+}
