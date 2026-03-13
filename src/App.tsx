@@ -39,11 +39,12 @@ function ConnectMenu() {
   const [eoaWallets, setEoaWallets] = useState<string[]>([]);
   const [username, setUsername] = useState<string>('');
   const [pfpUrl, setPfpUrl] = useState<string>('');
+  const [notificationsSupported, setNotificationsSupported] = useState(false);
 
   useEffect(() => {
-    console.log('Address:', address, 'Status:', status);
-    console.log('Connectors:', connectors.map(c => c.name).join(', '));
-    console.log('Chain:', chain?.name);
+    console.log('[Inking] Address:', address, 'Status:', status);
+    console.log('[Inking] Connectors:', connectors.map(c => c.name).join(', '));
+    console.log('[Inking] Chain:', chain?.name);
   }, [address, status, connectors, chain]);
 
   // Read context from sdk (async because of Comlink)
@@ -67,7 +68,22 @@ function ConnectMenu() {
           setPfpUrl(context.user.pfpUrl);
         }
       } catch (e) {
-        console.error('Failed to read context:', e);
+        console.error('[Inking] Failed to read context:', e);
+      }
+    })();
+  }, []);
+
+  // Probe host for notification support
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await sdk.actions.addMiniApp() as { notificationDetails?: { url: string; token: string } } | undefined;
+        if (result?.notificationDetails?.url) {
+          setNotificationsSupported(true);
+          localStorage.setItem('inking-notification-details', JSON.stringify(result.notificationDetails));
+        }
+      } catch (e) {
+        console.error('[Inking] Failed to probe notification support:', e);
       }
     })();
   }, []);
@@ -101,14 +117,18 @@ function ConnectMenu() {
         <ContextSection starPoints={starPoints} eoaWallets={eoaWallets} username={username} pfpUrl={pfpUrl} />
 
         <SectionDivider title="Minting" />
-        {address && <MintGalleryWithNotifications address={address} />}
+        {address && <MintGalleryWithNotifications address={address} notificationsSupported={notificationsSupported} />}
 
-        <SectionDivider title="Notifications" />
-        <NotificationSection
-          appName="Inking"
-          storageKey="inking-notification-details"
-          accentColor="#7c3aed"
-        />
+        {notificationsSupported && (
+          <>
+            <SectionDivider title="Notifications" />
+            <NotificationSection
+              appName="Inking"
+              storageKey="inking-notification-details"
+              accentColor="#7c3aed"
+            />
+          </>
+        )}
 
         <SectionDivider title="Message Signing" />
         <SignButton />
@@ -126,7 +146,7 @@ function ConnectMenu() {
           key={connector.uid}
           type="button"
           onClick={() => {
-            console.log('Connecting with', connector.name);
+            console.log('[Inking] Connecting with', connector.name);
             connect({ connector });
           }}
           disabled={status === "connecting"}
@@ -157,7 +177,7 @@ function ConnectMenu() {
   );
 }
 
-function MintGalleryWithNotifications({ address }: { address: `0x${string}` }) {
+function MintGalleryWithNotifications({ address, notificationsSupported }: { address: `0x${string}`; notificationsSupported: boolean }) {
   const notificationSentRef = useRef(false);
 
   const handleMintSuccess = useCallback(() => {
@@ -173,7 +193,7 @@ function MintGalleryWithNotifications({ address }: { address: `0x${string}` }) {
       }
     } catch { /* ignore */ }
 
-    if (details) {
+    if (details && notificationsSupported) {
       // Send "cooldown ready" notification after 60s
       const d = details;
       setTimeout(() => {
@@ -190,11 +210,11 @@ function MintGalleryWithNotifications({ address }: { address: `0x${string}` }) {
             tokens: [d.token],
           }),
         }).catch((e) => {
-          console.error('[INKING] Failed to send cooldown notification:', e instanceof Error ? e.message : String(e));
+          console.error('[Inking] Failed to send cooldown notification:', e instanceof Error ? e.message : String(e));
         });
       }, 60000);
     }
-  }, []);
+  }, [notificationsSupported]);
 
   return (
     <MintGallery

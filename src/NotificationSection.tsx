@@ -22,7 +22,7 @@ export function NotificationSection({ appName, storageKey, accentColor }: Notifi
         setStatus('enabled');
       }
     } catch (e) {
-      console.error('Failed to load notification details:', e);
+      console.error('[Inking] Failed to load notification details:', e);
     }
   }, [storageKey]);
 
