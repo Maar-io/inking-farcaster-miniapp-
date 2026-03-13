@@ -76,6 +76,7 @@ function ConnectMenu() {
   const [username, setUsername] = useState<string>("");
   const [pfpUrl, setPfpUrl] = useState<string>("");
   const [notificationsSupported, setNotificationsSupported] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     console.log("[Inking] Address:", address, "Status:", status);
@@ -163,15 +164,78 @@ function ConnectMenu() {
         </button>
 
         <SectionDivider title="Wallet Info" />
-        <div style={{ marginBottom: "8px", fontWeight: "500" }}>Connected smart account:</div>
-        <div style={{ wordBreak: "break-all", marginBottom: "12px", fontSize: "11px" }}>{address}</div>
-        <div style={{ marginBottom: "4px" }}>Chain: {chain?.name}</div>
-        <div style={{ marginBottom: "4px" }}>
-          Balance:{" "}
-          {balance ? `${(Number(balance.value) / 10 ** balance.decimals).toFixed(4)} ${balance.symbol}` : "Loading..."}
-        </div>
-        <div style={{ marginBottom: "4px" }}>
-          USDC: {usdcFormatted !== undefined ? `${usdcFormatted} USDC` : "Loading..."}
+        <div
+          style={{
+            background: "rgba(255,255,255,0.08)",
+            borderRadius: "12px",
+            padding: "14px 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
+              Account
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontFamily: "monospace", fontSize: "13px" }}>
+                {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "—"}
+              </span>
+              {address && (
+                <svg
+                  onClick={() => {
+                    navigator.clipboard.writeText(address);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                  }}
+                  style={{
+                    cursor: "pointer",
+                    opacity: copied ? 1 : 0.5,
+                    flexShrink: 0,
+                    color: copied ? "#4ade80" : "currentColor",
+                    transition: "color 0.2s, opacity 0.2s",
+                  }}
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {copied ? (
+                    <path d="M20 6L9 17l-5-5" />
+                  ) : (
+                    <>
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </>
+                  )}
+                </svg>
+              )}
+            </span>
+          </div>
+          <div style={{ height: "1px", background: "rgba(255,255,255,0.1)" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>Chain</span>
+            <span style={{ fontSize: "13px" }}>{chain?.name ?? "—"}</span>
+          </div>
+          <div style={{ height: "1px", background: "rgba(255,255,255,0.1)" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>ETH</span>
+            <span style={{ fontSize: "13px", fontFamily: "monospace" }}>
+              {balance ? `${(Number(balance.value) / 10 ** balance.decimals).toFixed(4)}` : "—"}
+            </span>
+          </div>
+          <div style={{ height: "1px", background: "rgba(255,255,255,0.1)" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>USDC</span>
+            <span style={{ fontSize: "13px", fontFamily: "monospace" }}>
+              {usdcFormatted !== undefined ? usdcFormatted : "—"}
+            </span>
+          </div>
         </div>
 
         <SectionDivider title="Context" />
