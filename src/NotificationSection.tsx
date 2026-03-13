@@ -26,26 +26,41 @@ export function NotificationSection({ appName, storageKey, accentColor }: Notifi
     }
   }, [storageKey]);
 
+  // Listen for notification details arriving via miniAppAdded/notificationsEnabled events
+  useEffect(() => {
+    const handleAdded = ({ notificationDetails }: { notificationDetails?: { url: string; token: string } }) => {
+      if (notificationDetails) {
+        notifDetailsRef.current = notificationDetails;
+        localStorage.setItem(storageKey, JSON.stringify(notificationDetails));
+        setStatus('enabled');
+      }
+    };
+    const handleEnabled = ({ notificationDetails }: { notificationDetails: { url: string; token: string } }) => {
+      notifDetailsRef.current = notificationDetails;
+      localStorage.setItem(storageKey, JSON.stringify(notificationDetails));
+      setStatus('enabled');
+    };
+
+    sdk.on('miniAppAdded', handleAdded);
+    sdk.on('notificationsEnabled', handleEnabled);
+    return () => {
+      sdk.off('miniAppAdded', handleAdded);
+      sdk.off('notificationsEnabled', handleEnabled);
+    };
+  }, [storageKey]);
+
   const handleEnable = useCallback(async () => {
     setStatus('enabling');
     setError(null);
     try {
-      const result = await sdk.actions.addMiniApp();
-      const details = (result as { notificationDetails?: { url: string; token: string } })?.notificationDetails;
-      if (details) {
-        notifDetailsRef.current = details;
-        localStorage.setItem(storageKey, JSON.stringify(details));
-        setStatus('enabled');
-      } else {
-        setError('No notification details returned');
-        setStatus('error');
-      }
+      await sdk.actions.addMiniApp();
+      // notificationDetails will arrive via the miniAppAdded event listener above
     } catch (e) {
       console.error(`[${prefix}] Error in handleEnable:`, e);
       setError(e instanceof Error ? e.message : 'Failed to enable notifications');
       setStatus('error');
     }
-  }, [storageKey, prefix]);
+  }, [prefix]);
 
   const handleSend = useCallback(async () => {
     const details = notifDetailsRef.current;

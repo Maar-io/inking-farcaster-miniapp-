@@ -54,6 +54,7 @@ function ConnectMenu() {
         const context = await sdk.context as {
           startale?: { starPoints?: number; eoaWallets?: string[] };
           user?: { username?: string; pfpUrl?: string };
+          client?: { notificationDetails?: { url: string; token: string } };
         };
         if (context?.startale?.starPoints !== undefined) {
           setStarPoints(context.startale.starPoints);
@@ -67,25 +68,42 @@ function ConnectMenu() {
         if (context?.user?.pfpUrl) {
           setPfpUrl(context.user.pfpUrl);
         }
+        // Check if user already has notifications enabled
+        if (context?.client?.notificationDetails?.url) {
+          setNotificationsSupported(true);
+          localStorage.setItem('inking-notification-details', JSON.stringify(context.client.notificationDetails));
+        }
       } catch (e) {
         console.error('[Inking] Failed to read context:', e);
       }
     })();
   }, []);
 
-  // Probe host for notification support
+  // Listen for miniAppAdded event to capture notification details
   useEffect(() => {
-    (async () => {
-      try {
-        const result = await sdk.actions.addMiniApp() as { notificationDetails?: { url: string; token: string } } | undefined;
-        if (result?.notificationDetails?.url) {
-          setNotificationsSupported(true);
-          localStorage.setItem('inking-notification-details', JSON.stringify(result.notificationDetails));
-        }
-      } catch (e) {
-        console.error('[Inking] Failed to probe notification support:', e);
+    const handleAdded = ({ notificationDetails }: { notificationDetails?: { url: string; token: string } }) => {
+      if (notificationDetails?.url) {
+        setNotificationsSupported(true);
+        localStorage.setItem('inking-notification-details', JSON.stringify(notificationDetails));
       }
-    })();
+    };
+    const handleEnabled = ({ notificationDetails }: { notificationDetails: { url: string; token: string } }) => {
+      setNotificationsSupported(true);
+      localStorage.setItem('inking-notification-details', JSON.stringify(notificationDetails));
+    };
+    const handleDisabled = () => {
+      setNotificationsSupported(false);
+      localStorage.removeItem('inking-notification-details');
+    };
+
+    sdk.on('miniAppAdded', handleAdded);
+    sdk.on('notificationsEnabled', handleEnabled);
+    sdk.on('notificationsDisabled', handleDisabled);
+    return () => {
+      sdk.off('miniAppAdded', handleAdded);
+      sdk.off('notificationsEnabled', handleEnabled);
+      sdk.off('notificationsDisabled', handleDisabled);
+    };
   }, []);
 
   if (status === "connected") {
