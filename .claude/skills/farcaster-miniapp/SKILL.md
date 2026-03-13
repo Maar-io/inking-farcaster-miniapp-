@@ -1,23 +1,24 @@
 ---
 name: farcaster-miniapp
 description: >
-  Build Farcaster Mini Apps — web apps that run inside Farcaster clients (Warpcast, etc.)
-  with SDK access to wallet, notifications, authentication, social actions, and more.
-  Use this skill whenever the user wants to create, modify, debug, or understand a
-  Farcaster Mini App, including: setting up a new miniapp project, configuring the
-  farcaster.json manifest, adding fc:miniapp embed meta tags, integrating the
-  @farcaster/miniapp-sdk, handling wallet connections (EVM via Wagmi or Solana),
-  implementing notifications (addMiniApp, webhook events, sending notifications),
+  Build Farcaster Mini Apps for Startale App on Soneium chain using @farcaster/miniapp-sdk
+  and @startale/app-sdk. Use this skill whenever the user wants to create, modify, debug,
+  or understand a Farcaster Mini App targeting Startale App, including: setting up a new
+  miniapp project, configuring the farcaster.json manifest, adding fc:miniapp embed meta
+  tags, integrating the miniapp SDK, handling wallet connections via Startale connector
+  on Soneium, implementing notifications (addMiniApp, webhook events, sending notifications),
   using SDK actions (composeCast, signIn, openUrl, viewProfile, swapToken, sendToken),
-  reading sdk.context, listening to SDK events, Quick Auth, share extensions,
-  haptic feedback, back navigation, or publishing/discovery. Also use when the user
-  mentions Frames v2 (which is the old name for Mini Apps). Do NOT confuse with
-  Frames v1 which is a completely different, older technology.
+  reading sdk.context (including Startale-specific extensions like starPoints and eoaWallets),
+  listening to SDK events, Quick Auth, share extensions, haptic feedback, back navigation,
+  or publishing/discovery. Also trigger when the user mentions Frames v2, Startale miniapp,
+  or Soneium miniapp. Do NOT confuse with Frames v1 which is a completely different technology.
 ---
 
-# Farcaster Mini Apps
+# Farcaster Mini Apps for Startale App (Soneium)
 
-Mini Apps are web apps (HTML/CSS/JS) that render inside Farcaster clients. They use the `@farcaster/miniapp-sdk` to access native Farcaster features: authentication, wallet, notifications, social actions.
+Mini Apps are web apps (HTML/CSS/JS) that render inside Farcaster-compatible clients. This skill targets **Startale App** as the Farcaster client, running on the **Soneium** chain.
+
+Startale App is a Farcaster client that extends the standard Mini App SDK context with Startale-specific data (STAR points, EOA wallets). It uses its own Wagmi connector (`@startale/app-sdk`) instead of the generic `@farcaster/miniapp-wagmi-connector`.
 
 ## Critical Rules
 
@@ -27,17 +28,14 @@ Mini Apps are web apps (HTML/CSS/JS) that render inside Farcaster clients. They 
 - **ALWAYS** use `"version": "1"` (not `"next"`).
 - **ALWAYS** call `sdk.actions.ready()` after the app loads — without it users see an infinite loading screen.
 - The `addMiniApp()` action returns `void`. Notification details arrive via **events**, not return values.
+- **Wallet connector**: Use `startaleConnector()` from `@startale/app-sdk`, NOT `farcasterMiniApp()` from `@farcaster/miniapp-wagmi-connector`. The target client is Startale App, not Warpcast.
+- **Chain**: Always use `soneium` from `wagmi/chains`. This is the only supported chain.
 
 ## Project Setup
 
-### New project
+### Dependencies
 ```bash
-npm create @farcaster/mini-app
-```
-
-### Existing project
-```bash
-npm install @farcaster/miniapp-sdk
+npm install @farcaster/miniapp-sdk @startale/app-sdk wagmi viem @tanstack/react-query react react-dom
 ```
 
 ### Minimum viable app
@@ -50,9 +48,68 @@ function App() {
     sdk.actions.ready()
   }, [])
 
-  return <div>Hello Farcaster</div>
+  return <div>Hello Startale</div>
 }
 ```
+
+### Entry point (Buffer polyfill required)
+```tsx
+import { Buffer } from 'buffer'
+globalThis.Buffer = Buffer
+
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { WagmiProvider } from 'wagmi'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { config } from './wagmi'
+import App from './App'
+
+const queryClient = new QueryClient()
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </WagmiProvider>
+  </React.StrictMode>
+)
+```
+
+## Wagmi Configuration (Startale + Soneium)
+
+This is the correct wallet setup for Startale App:
+
+```ts
+import { startaleConnector } from "@startale/app-sdk"
+import { http, createConfig } from "wagmi"
+import { soneium } from "wagmi/chains"
+
+export const config = createConfig({
+  chains: [soneium],
+  connectors: [startaleConnector()],
+  multiInjectedProviderDiscovery: false,
+  transports: {
+    [soneium.id]: http()
+  },
+})
+
+declare module "wagmi" {
+  interface Register {
+    config: typeof config
+  }
+}
+```
+
+Key points:
+- Use `startaleConnector()` — this connects to the Startale App wallet, NOT the generic Farcaster wallet
+- Chain is `soneium` — this is the only chain this skill targets
+- `multiInjectedProviderDiscovery: false` — prevents conflicts with other injected wallets
+- No wallet selection dialog needed — Startale App handles connection
+
+### Wallet interaction
+Use standard Wagmi hooks: `useConnection()`, `useConnect()`, `useDisconnect()`, `useSignMessage()`, `useReadContract()`, `useWriteContract()`, `useWaitForTransactionReceipt()`.
 
 ## Manifest (`/.well-known/farcaster.json`)
 
@@ -84,7 +141,7 @@ Every Mini App needs a manifest. It identifies the app, verifies ownership, and 
 
 Key fields:
 - `accountAssociation`: Cryptographic proof linking domain to a Farcaster account. Generate via the [Manifest Tool](https://farcaster.xyz/~/developers/new).
-- `webhookUrl`: Required for server-side notification token delivery. Optional if doing client-only notifications.
+- `webhookUrl`: Required for server-side notification token delivery. Optional if doing client-only notifications. If not needed, omit entirely (do not set to empty string).
 - `homeUrl`: Where the app loads. Sub-paths from universal links get appended to this.
 
 **Hosted manifests**: Farcaster can host manifests for you. Set up a redirect from `/.well-known/farcaster.json` to `https://api.farcaster.xyz/miniapps/hosted-manifest/{id}`.
@@ -106,15 +163,29 @@ Each shareable page needs an `fc:miniapp` meta tag in `<head>`:
 Access session info from `sdk.context` (it's a Promise due to Comlink):
 
 ```ts
-const context = await sdk.context
-
-context.user       // { fid, username?, displayName?, pfpUrl?, location? }
-context.client     // { clientFid, added, platformType?, safeAreaInsets?, notificationDetails? }
-context.location   // where app was launched from: cast_embed | cast_share | notification | launcher | channel | open_miniapp
-context.features   // { haptics, cameraAndMicrophoneAccess? }
+const context = await sdk.context as {
+  user?: { fid: number; username?: string; displayName?: string; pfpUrl?: string };
+  client?: { clientFid: number; added: boolean; platformType?: string; safeAreaInsets?: SafeAreaInsets; notificationDetails?: { url: string; token: string } };
+  location?: LocationContext;
+  features?: { haptics: boolean; cameraAndMicrophoneAccess?: boolean };
+  // Startale-specific extensions (only available in Startale App):
+  startale?: { starPoints?: number; eoaWallets?: string[] };
+}
 ```
 
-`context.client.notificationDetails` contains `{ url, token }` if the user already has notifications enabled. Use this on startup to check existing notification state.
+### Startale-specific context
+Startale App extends the standard Farcaster context with:
+- `context.startale.starPoints` — user's STAR point balance
+- `context.startale.eoaWallets` — array of user's EOA wallet addresses
+
+These fields are NOT part of the standard Farcaster SDK and only available in Startale App.
+
+### Standard context
+- `context.user` — Farcaster user info (fid, username, pfpUrl)
+- `context.client.notificationDetails` — existing `{ url, token }` if notifications enabled
+- `context.client.added` — whether user has added the mini app
+- `context.client.safeAreaInsets` — `{ top, bottom, left, right }` for mobile safe areas
+- `context.location` — launch context: `cast_embed | cast_share | notification | launcher | channel | open_miniapp`
 
 ## SDK Actions
 
@@ -133,9 +204,11 @@ sdk.actions.sendToken(...)             // Prompt token send
 sdk.actions.viewToken(...)             // View token info
 ```
 
+**Note**: Not all actions may be supported by Startale App. `sdk.actions.addMiniApp` support may vary — check Startale App compatibility docs. Use `sdk.getCapabilities()` to detect what's available at runtime.
+
 ## SDK Events (Client-Side)
 
-The Farcaster client emits events to your app via `sdk.on()` / `sdk.off()`:
+The client emits events to your app via `sdk.on()` / `sdk.off()`:
 
 ```ts
 // When user adds the mini app
@@ -183,6 +256,22 @@ There are TWO parallel paths for receiving notification tokens:
 2. **Client-side (SDK events)**: The SDK emits `miniAppAdded` and `notificationsEnabled` events with `notificationDetails` directly to your running app. This works for demos/client-only apps.
 
 Additionally, `sdk.context.client.notificationDetails` contains existing tokens if the user previously enabled notifications.
+
+### Detecting notification support
+
+Not all Farcaster hosts support notifications. Check `sdk.context.client.notificationDetails` on startup to detect whether the current host provides notification capabilities. If the property (or its `url`) is absent, the host does not support notifications and you should hide notification-related UI:
+
+```ts
+const context = await sdk.context
+const hostSupportsNotifications = !!context?.client?.notificationDetails?.url
+
+// Only show notification UI when the host supports it
+if (hostSupportsNotifications) {
+  // render notification controls
+}
+```
+
+This is important because the same miniapp may run in different hosts — some (like Startale App) support notifications while testing environments may not. Gate notification UI on this check rather than always showing it.
 
 ### The correct addMiniApp pattern
 
@@ -264,58 +353,6 @@ if (details) {
 
 For the full reference on webhook verification and handling, see `references/webhooks-and-notifications.md`.
 
-## Ethereum Wallet (Wagmi)
-
-```bash
-npm install wagmi viem @farcaster/miniapp-wagmi-connector @tanstack/react-query
-```
-
-```ts
-import { http, createConfig } from 'wagmi'
-import { base } from 'wagmi/chains'
-import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector'
-
-export const config = createConfig({
-  chains: [base],
-  transports: { [base.id]: http() },
-  connectors: [farcasterMiniApp()]
-})
-```
-
-No wallet selection dialog needed — the Farcaster client handles wallet connection.
-
-### Batch Transactions (EIP-5792)
-
-```tsx
-import { useSendCalls } from 'wagmi'
-
-const { sendCalls } = useSendCalls()
-sendCalls({
-  calls: [
-    { to: '0x...', value: parseEther('0.01') },
-    { to: '0x...', data: encodeFunctionData({ abi, functionName: 'mint', args: [...] }) }
-  ]
-})
-```
-
-## Solana Wallet
-
-```bash
-npm install @farcaster/mini-app-solana @solana/wallet-adapter-react
-```
-
-```tsx
-import { FarcasterSolanaProvider } from '@farcaster/mini-app-solana'
-
-function App() {
-  return (
-    <FarcasterSolanaProvider endpoint={solanaEndpoint}>
-      <Content />
-    </FarcasterSolanaProvider>
-  )
-}
-```
-
 ## Authentication
 
 ### Quick Auth (recommended)
@@ -372,7 +409,7 @@ if (sdk.context.location?.type === 'cast_share') {
 ## Environment Detection
 
 ```ts
-const isMiniApp = await sdk.isInMiniApp()  // true if running inside Farcaster client
+const isMiniApp = await sdk.isInMiniApp()  // true if running inside a Farcaster client
 ```
 
 ## Capability Detection
@@ -383,7 +420,7 @@ const capabilities = await sdk.getCapabilities()
 // e.g. ['actions.composeCast', 'wallet.getEthereumProvider', 'haptics.impactOccurred']
 
 const chains = await sdk.getChains()
-// Returns CAIP-2 chain identifiers e.g. ['eip155:8453']
+// Returns CAIP-2 chain identifiers e.g. ['eip155:1868'] for Soneium
 ```
 
 ## Debugging & Testing
@@ -400,9 +437,12 @@ const chains = await sdk.getChains()
 1. **Infinite loading screen**: Forgot to call `sdk.actions.ready()`.
 2. **addMiniApp fails on localhost/ngrok**: It requires production domain matching manifest.
 3. **Trying to read return value of addMiniApp()**: It returns void. Listen to events instead.
-4. **Missing Buffer polyfill**: Some web3 libs need `import { Buffer } from 'buffer'; window.Buffer = Buffer`.
+4. **Missing Buffer polyfill**: Web3 libs need `import { Buffer } from 'buffer'; globalThis.Buffer = Buffer` before any other imports.
 5. **SVG images in production**: Use PNG. SVGs may work in preview but fail in clients.
 6. **Not cleaning up event listeners**: Always `sdk.off()` in useEffect cleanup.
+7. **Using farcasterMiniApp connector**: For Startale App, use `startaleConnector()` from `@startale/app-sdk`, not the generic Farcaster connector.
+8. **Wrong chain**: Always use `soneium` from `wagmi/chains`. Other chains are not supported in this context.
+9. **Empty webhookUrl**: If not using webhooks, omit the field entirely instead of setting `""`.
 
 ## Reference Files
 

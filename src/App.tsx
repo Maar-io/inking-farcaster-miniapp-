@@ -18,12 +18,34 @@ function SectionDivider({ title }: { title: string }) {
 }
 
 function App() {
+  const [safeArea, setSafeArea] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
+
   useEffect(() => {
     sdk.actions.ready();
+    sdk.back.enableWebNavigation().catch(() => {});
+
+    // Read safe area insets from context
+    (async () => {
+      try {
+        const context = await sdk.context as {
+          client?: { safeAreaInsets?: { top: number; bottom: number; left: number; right: number } };
+        };
+        if (context?.client?.safeAreaInsets) {
+          setSafeArea(context.client.safeAreaInsets);
+        }
+      } catch { /* ignore */ }
+    })();
   }, []);
 
   return (
-    <div style={{ padding: '16px', maxWidth: '100%' }}>
+    <div style={{
+      padding: '16px',
+      maxWidth: '100%',
+      marginTop: safeArea.top,
+      marginBottom: safeArea.bottom,
+      marginLeft: safeArea.left,
+      marginRight: safeArea.right,
+    }}>
       <h1 style={{ textAlign: 'center', marginBottom: '24px', fontSize: '20px' }}>Demo Mini App</h1>
       <ConnectMenu />
     </div>
@@ -68,7 +90,7 @@ function ConnectMenu() {
         if (context?.user?.pfpUrl) {
           setPfpUrl(context.user.pfpUrl);
         }
-        // Check if user already has notifications enabled
+        // Seed localStorage and flag notifications as supported if host provides details
         if (context?.client?.notificationDetails?.url) {
           setNotificationsSupported(true);
           localStorage.setItem('inking-notification-details', JSON.stringify(context.client.notificationDetails));
@@ -79,7 +101,7 @@ function ConnectMenu() {
     })();
   }, []);
 
-  // Listen for miniAppAdded event to capture notification details
+  // Listen for notification events from hosts that support them (e.g. sandbox)
   useEffect(() => {
     const handleAdded = ({ notificationDetails }: { notificationDetails?: { url: string; token: string } }) => {
       if (notificationDetails?.url) {
@@ -135,7 +157,7 @@ function ConnectMenu() {
         <ContextSection starPoints={starPoints} eoaWallets={eoaWallets} username={username} pfpUrl={pfpUrl} />
 
         <SectionDivider title="Minting" />
-        {address && <MintGalleryWithNotifications address={address} notificationsSupported={notificationsSupported} />}
+        {address && <MintGalleryWithNotifications address={address} />}
 
         {notificationsSupported && (
           <>
@@ -195,8 +217,18 @@ function ConnectMenu() {
   );
 }
 
-function MintGalleryWithNotifications({ address, notificationsSupported }: { address: `0x${string}`; notificationsSupported: boolean }) {
+function MintGalleryWithNotifications({ address }: { address: `0x${string}` }) {
   const notificationSentRef = useRef(false);
+  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up cooldown timer on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearTimeout(cooldownTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleMintSuccess = useCallback(() => {
     // Reset so cooldown notification fires again after this mint
@@ -211,10 +243,13 @@ function MintGalleryWithNotifications({ address, notificationsSupported }: { add
       }
     } catch { /* ignore */ }
 
-    if (details && notificationsSupported) {
+    if (details) {
       // Send "cooldown ready" notification after 60s
       const d = details;
-      setTimeout(() => {
+      if (cooldownTimerRef.current) {
+        clearTimeout(cooldownTimerRef.current);
+      }
+      cooldownTimerRef.current = setTimeout(() => {
         if (notificationSentRef.current) return;
         notificationSentRef.current = true;
         fetch(d.url, {
@@ -232,7 +267,7 @@ function MintGalleryWithNotifications({ address, notificationsSupported }: { add
         });
       }, 60000);
     }
-  }, [notificationsSupported]);
+  }, []);
 
   return (
     <MintGallery

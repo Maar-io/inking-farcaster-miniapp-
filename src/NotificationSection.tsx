@@ -54,7 +54,11 @@ export function NotificationSection({ appName, storageKey, accentColor }: Notifi
     setError(null);
     try {
       await sdk.actions.addMiniApp();
-      // notificationDetails will arrive via the miniAppAdded event listener above
+      // notificationDetails will arrive via the miniAppAdded event listener above.
+      // If the event doesn't arrive within 5s (e.g. user dismissed prompt), reset state.
+      setTimeout(() => {
+        setStatus((current) => current === 'enabling' ? 'idle' : current);
+      }, 5000);
     } catch (e) {
       console.error(`[${prefix}] Error in handleEnable:`, e);
       setError(e instanceof Error ? e.message : 'Failed to enable notifications');
