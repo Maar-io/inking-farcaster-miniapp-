@@ -55,7 +55,8 @@ function ConnectMenu() {
   const connectors = useConnectors();
   const { data: balance } = useBalance({ address });
   const { formatted: usdcFormatted } = useUsdcBalance(address);
-  const { starPoints, eoaWallets, username, pfpUrl, notificationsSupported } = useAppContext("inking-notification-details");
+  const { starPoints, eoaWallets, username, pfpUrl, notificationsSupported } =
+    useAppContext("inking-notification-details");
   const { copied, copyToClipboard } = useClipboardCopy();
 
   useEffect(() => {
@@ -104,33 +105,43 @@ function ConnectMenu() {
                 {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "—"}
               </span>
               {address && (
-                <svg
+                <button
+                  type="button"
                   onClick={() => copyToClipboard(address)}
+                  aria-label={copied ? "Copied" : "Copy address"}
                   style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
                     cursor: "pointer",
                     opacity: copied ? 1 : 0.5,
                     flexShrink: 0,
                     color: copied ? "#4ade80" : "currentColor",
                     transition: "color 0.2s, opacity 0.2s",
+                    display: "flex",
                   }}
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
                 >
-                  {copied ? (
-                    <path d="M20 6L9 17l-5-5" />
-                  ) : (
-                    <>
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </>
-                  )}
-                </svg>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <title>{copied ? "Copied" : "Copy address"}</title>
+                    {copied ? (
+                      <path d="M20 6L9 17l-5-5" />
+                    ) : (
+                      <>
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </>
+                    )}
+                  </svg>
+                </button>
               )}
             </span>
           </div>
