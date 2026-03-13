@@ -1,10 +1,13 @@
-import { sdk } from "@farcaster/miniapp-sdk";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useBalance, useConnect, useConnection, useConnectors, useDisconnect, useSignMessage } from "wagmi";
 import { ContextSection } from "./ContextSection";
 import { MintGallery } from "./MintGallery";
 import { NotificationSection } from "./NotificationSection";
-import { useUsdcBalance } from "./useTokenBalance";
+import { useAppContext } from "./hooks/useAppContext";
+import { useClipboardCopy } from "./hooks/useClipboardCopy";
+import { useMintSuccessNotification } from "./hooks/useMintSuccessNotification";
+import { useSafeAreaInsets } from "./hooks/useSafeAreaInsets";
+import { useUsdcBalance } from "./hooks/useTokenBalance";
 
 function SectionDivider({ title }: { title: string }) {
   return (
@@ -26,26 +29,7 @@ function SectionDivider({ title }: { title: string }) {
 }
 
 function App() {
-  const [safeArea, setSafeArea] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
-
-  useEffect(() => {
-    sdk.actions.ready();
-    sdk.back.enableWebNavigation().catch(() => {});
-
-    // Read safe area insets from context
-    (async () => {
-      try {
-        const context = (await sdk.context) as {
-          client?: { safeAreaInsets?: { top: number; bottom: number; left: number; right: number } };
-        };
-        if (context?.client?.safeAreaInsets) {
-          setSafeArea(context.client.safeAreaInsets);
-        }
-      } catch {
-        /* ignore */
-      }
-    })();
-  }, []);
+  const safeArea = useSafeAreaInsets();
 
   return (
     <div
@@ -71,77 +55,14 @@ function ConnectMenu() {
   const connectors = useConnectors();
   const { data: balance } = useBalance({ address });
   const { formatted: usdcFormatted } = useUsdcBalance(address);
-  const [starPoints, setStarPoints] = useState<number | null>(null);
-  const [eoaWallets, setEoaWallets] = useState<string[]>([]);
-  const [username, setUsername] = useState<string>("");
-  const [pfpUrl, setPfpUrl] = useState<string>("");
-  const [notificationsSupported, setNotificationsSupported] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { starPoints, eoaWallets, username, pfpUrl, notificationsSupported } = useAppContext("inking-notification-details");
+  const { copied, copyToClipboard } = useClipboardCopy();
 
   useEffect(() => {
     console.log("[Inking] Address:", address, "Status:", status);
     console.log("[Inking] Connectors:", connectors.map((c) => c.name).join(", "));
     console.log("[Inking] Chain:", chain?.name);
   }, [address, status, connectors, chain]);
-
-  // Read context from sdk (async because of Comlink)
-  useEffect(() => {
-    (async () => {
-      try {
-        const context = (await sdk.context) as {
-          startale?: { starPoints?: number; eoaWallets?: string[] };
-          user?: { username?: string; pfpUrl?: string };
-          client?: { notificationDetails?: { url: string; token: string } };
-        };
-        if (context?.startale?.starPoints !== undefined) {
-          setStarPoints(context.startale.starPoints);
-        }
-        if (context?.startale?.eoaWallets) {
-          setEoaWallets(context.startale.eoaWallets);
-        }
-        if (context?.user?.username) {
-          setUsername(context.user.username);
-        }
-        if (context?.user?.pfpUrl) {
-          setPfpUrl(context.user.pfpUrl);
-        }
-        // Seed localStorage and flag notifications as supported if host provides details
-        if (context?.client?.notificationDetails?.url) {
-          setNotificationsSupported(true);
-          localStorage.setItem("inking-notification-details", JSON.stringify(context.client.notificationDetails));
-        }
-      } catch (e) {
-        console.error("[Inking] Failed to read context:", e);
-      }
-    })();
-  }, []);
-
-  // Listen for notification events from hosts that support them (e.g. sandbox)
-  useEffect(() => {
-    const handleAdded = ({ notificationDetails }: { notificationDetails?: { url: string; token: string } }) => {
-      if (notificationDetails?.url) {
-        setNotificationsSupported(true);
-        localStorage.setItem("inking-notification-details", JSON.stringify(notificationDetails));
-      }
-    };
-    const handleEnabled = ({ notificationDetails }: { notificationDetails: { url: string; token: string } }) => {
-      setNotificationsSupported(true);
-      localStorage.setItem("inking-notification-details", JSON.stringify(notificationDetails));
-    };
-    const handleDisabled = () => {
-      setNotificationsSupported(false);
-      localStorage.removeItem("inking-notification-details");
-    };
-
-    sdk.on("miniAppAdded", handleAdded);
-    sdk.on("notificationsEnabled", handleEnabled);
-    sdk.on("notificationsDisabled", handleDisabled);
-    return () => {
-      sdk.off("miniAppAdded", handleAdded);
-      sdk.off("notificationsEnabled", handleEnabled);
-      sdk.off("notificationsDisabled", handleDisabled);
-    };
-  }, []);
 
   if (status === "connected") {
     return (
@@ -176,7 +97,7 @@ function ConnectMenu() {
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
-              Account
+              Smart Account
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ fontFamily: "monospace", fontSize: "13px" }}>
@@ -184,11 +105,7 @@ function ConnectMenu() {
               </span>
               {address && (
                 <svg
-                  onClick={() => {
-                    navigator.clipboard.writeText(address);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1500);
-                  }}
+                  onClick={() => copyToClipboard(address)}
                   style={{
                     cursor: "pointer",
                     opacity: copied ? 1 : 0.5,
@@ -297,58 +214,7 @@ function ConnectMenu() {
 }
 
 function MintGalleryWithNotifications({ address }: { address: `0x${string}` }) {
-  const notificationSentRef = useRef(false);
-  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Clean up cooldown timer on unmount
-  useEffect(() => {
-    return () => {
-      if (cooldownTimerRef.current) {
-        clearTimeout(cooldownTimerRef.current);
-      }
-    };
-  }, []);
-
-  const handleMintSuccess = useCallback(() => {
-    // Reset so cooldown notification fires again after this mint
-    notificationSentRef.current = false;
-
-    // Read latest notification token from localStorage
-    let details: { url: string; token: string } | null = null;
-    try {
-      const saved = localStorage.getItem("inking-notification-details");
-      if (saved) {
-        details = JSON.parse(saved) as { url: string; token: string };
-      }
-    } catch {
-      /* ignore */
-    }
-
-    if (details) {
-      // Send "cooldown ready" notification after 60s
-      const d = details;
-      if (cooldownTimerRef.current) {
-        clearTimeout(cooldownTimerRef.current);
-      }
-      cooldownTimerRef.current = setTimeout(() => {
-        if (notificationSentRef.current) return;
-        notificationSentRef.current = true;
-        fetch(d.url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            notificationId: `inking-ready-${Date.now()}`,
-            title: "Inking",
-            body: "You can mint NFT again!",
-            targetUrl: window.location.href,
-            tokens: [d.token],
-          }),
-        }).catch((e) => {
-          console.error("[Inking] Failed to send cooldown notification:", e instanceof Error ? e.message : String(e));
-        });
-      }, 60000);
-    }
-  }, []);
+  const handleMintSuccess = useMintSuccessNotification("inking-notification-details");
 
   return (
     <MintGallery

@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
-import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useEffect } from "react";
+import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { soneium } from "wagmi/chains";
+import { useMintCooldown } from "./hooks/useMintCooldown";
+import { useNftBalance } from "./hooks/useNftBalance";
 
 const NFT_CONTRACT = "0x7a181921b8976cE4a4997B134225d2E74E67797B" as const;
 const NFT_ABI = [
@@ -11,23 +13,7 @@ const NFT_ABI = [
     stateMutability: "nonpayable",
     type: "function",
   },
-  {
-    inputs: [{ name: "owner", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "tokenId", type: "uint256" }],
-    name: "tokenURI",
-    outputs: [{ name: "", type: "string" }],
-    stateMutability: "view",
-    type: "function",
-  },
 ] as const;
-
-const COOLDOWN_MS = 60000;
 
 interface MintGalleryProps {
   address: `0x${string}`;
@@ -44,70 +30,11 @@ export function MintGallery({
   emptySlotBg = "rgba(0,0,0,0.1)",
   emptySlotBorder = "rgba(0,0,0,0.2)",
 }: MintGalleryProps) {
-  const { data: balance } = useReadContract({
-    address: NFT_CONTRACT,
-    abi: NFT_ABI,
-    functionName: "balanceOf",
-    args: [address],
-    chainId: soneium.id,
-  });
-
-  const [localCount, setLocalCount] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(`${storagePrefix}-nft-count-${address}`);
-      return saved ? Number.parseInt(saved, 10) : 0;
-    } catch {
-      return 0;
-    }
-  });
-
-  // Sync: when on-chain balance loads, use the higher value
-  useEffect(() => {
-    if (balance !== undefined) {
-      const onChain = Number(balance);
-      setLocalCount((prev) => {
-        const next = Math.max(prev, onChain);
-        localStorage.setItem(`${storagePrefix}-nft-count-${address}`, next.toString());
-        return next;
-      });
-    }
-  }, [balance, address, storagePrefix]);
-
-  const { data: tokenURI } = useReadContract({
-    address: NFT_CONTRACT,
-    abi: NFT_ABI,
-    functionName: "tokenURI",
-    args: [0n],
-    chainId: soneium.id,
-    query: {
-      enabled: balance !== undefined && balance >= 1n,
-    },
-  });
+  const { localCount, setLocalCount, tokenURI } = useNftBalance(address, storagePrefix);
+  const { timeRemaining, setLastMintTime, canMint } = useMintCooldown(storagePrefix);
 
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-  const [lastMintTime, setLastMintTime] = useState<number | null>(() => {
-    try {
-      const saved = localStorage.getItem(`${storagePrefix}-last-mint-time`);
-      return saved ? Number.parseInt(saved, 10) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [timeRemaining, setTimeRemaining] = useState<number>(0);
-
-  // Cooldown timer
-  useEffect(() => {
-    if (!lastMintTime) return;
-    const interval = setInterval(() => {
-      const remaining = Math.max(0, COOLDOWN_MS - (Date.now() - lastMintTime));
-      setTimeRemaining(remaining);
-    }, 100);
-    return () => clearInterval(interval);
-  }, [lastMintTime]);
-
-  const canMint = timeRemaining === 0;
 
   const handleMint = () => {
     writeContract({
@@ -132,7 +59,7 @@ export function MintGallery({
       localStorage.setItem(`${storagePrefix}-last-mint-time`, now.toString());
       onMintSuccess?.();
     }
-  }, [isSuccess, address, storagePrefix, onMintSuccess]);
+  }, [isSuccess, address, storagePrefix, onMintSuccess, setLocalCount, setLastMintTime]);
 
   const totalNfts = localCount;
   const nftCount = totalNfts === 0 ? 0 : totalNfts % 10 || 10;
