@@ -7,14 +7,24 @@
   "miniapp": {
     "version": "1",
     "name": "Inking",
+    "tagline": "This is inking tagline",
+    "subtitle": "This is inking subtitle",
     "description": "Client side demo of minting and notifications (no backend)",
-    "iconUrl": "https://inking-farcaster-miniapp.vercel.app/icon.png",
-    "homeUrl": "https://inking-farcaster-miniapp.vercel.app",
-    "imageUrl": "https://inking-farcaster-miniapp.vercel.app/preview.png",
+    "iconUrl": "http://inking-farcaster-miniapp.vercel.app/icon.png",
+    "homeUrl": "http://inking-farcaster-miniapp.vercel.app",
+    "imageUrl": "http://inking-farcaster-miniapp.vercel.app/preview.jpg",
+    "heroImageUrl": "http://inking-farcaster-miniapp.vercel.app/heroImage.webp",
     "buttonTitle": "Launch Inking",
     "splashImageUrl": "https://inking-farcaster-miniapp.vercel.app/splash.png",
     "splashBackgroundColor": "#4f46e5",
     "primaryCategory": "entertainment",
-    "tags": ["nft", "wallet", "minting", "notifications", "demo"]
+    "tags": ["nft", "wallet", "minting", "notifications", "demo"],
+    "startale": {
+      "featuredBannerImageUrl": "http://inking-farcaster-miniapp.vercel.app/featuredBanner.webp",
+      "projectWebsite": "https://github.com/Maar-io/inking-farcaster-miniapp-",
+      "socialLinks": {
+        "twitter": "https://twitter.com/Maar_io"
+      }
+    }
   }
 }
