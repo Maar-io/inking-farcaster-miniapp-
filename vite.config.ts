@@ -13,7 +13,7 @@ export default defineConfig({
     "globalThis.Buffer": "globalThis.Buffer",
   },
   build: {
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       // Suppress noisy warnings from dependencies
       onLog(level, log, handler) {
