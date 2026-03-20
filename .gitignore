@@ -25,3 +25,4 @@ dist-ssr
 .vercel
 contract/
 ./.claude/settings.local.json
+.env*.local
